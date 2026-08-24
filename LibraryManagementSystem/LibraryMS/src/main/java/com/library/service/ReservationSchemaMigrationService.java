@@ -1,6 +1,7 @@
 package com.library.service;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityManagerFactory;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,45 +20,54 @@ public class ReservationSchemaMigrationService {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public ReservationSchemaMigrationService(JdbcTemplate jdbcTemplate) {
+    public ReservationSchemaMigrationService(
+            JdbcTemplate jdbcTemplate, EntityManagerFactory entityManagerFactory) {
         this.jdbcTemplate = jdbcTemplate;
+        Objects.requireNonNull(entityManagerFactory, "JPA must initialize before schema migration");
     }
 
     @PostConstruct
     public void ensureReservationHistoryFriendlyIndexes() {
-        ensureIndex(STUDENT_INDEX_NAME, "create index " + STUDENT_INDEX_NAME + " on reservations (student_id)");
-        ensureIndex(BOOK_INDEX_NAME, "create index " + BOOK_INDEX_NAME + " on reservations (book_id)");
+        try {
+            ensureIndex(STUDENT_INDEX_NAME, "create index " + STUDENT_INDEX_NAME + " on reservations (student_id)");
+            ensureIndex(BOOK_INDEX_NAME, "create index " + BOOK_INDEX_NAME + " on reservations (book_id)");
 
-        Integer uniqueCount = jdbcTemplate.query(
-                """
-                select count(*)
-                from information_schema.statistics
-                where table_schema = database()
-                  and table_name = 'reservations'
-                  and index_name = ?
-                  and non_unique = 0
-                """,
-                ps -> ps.setString(1, UNIQUE_INDEX_NAME),
-                rs -> rs.next() ? rs.getInt(1) : 0);
+            Integer uniqueCount = jdbcTemplate.query(
+                    """
+                    select count(*)
+                    from information_schema.statistics
+                    where table_schema = database()
+                      and table_name = 'reservations'
+                      and index_name = ?
+                      and non_unique = 0
+                    """,
+                    ps -> ps.setString(1, UNIQUE_INDEX_NAME),
+                    rs -> rs.next() ? rs.getInt(1) : 0);
 
-        if (uniqueCount != null && uniqueCount > 0) {
-            try {
-                log.info("Dropping unique reservation index {} to preserve status history.", UNIQUE_INDEX_NAME);
-                jdbcTemplate.execute("alter table reservations drop index " + UNIQUE_INDEX_NAME);
-            } catch (DataAccessException ex) {
-                Throwable rootCause = ex.getMostSpecificCause();
-                String causeMessage = rootCause != null ? rootCause.getMessage() : ex.getMessage();
-                log.warn(
-                        "Could not drop reservation unique index {} automatically ({}). "
-                                + "App will continue; run manual DB migration if status-history conflicts persist.",
-                        UNIQUE_INDEX_NAME,
-                        causeMessage);
+            if (uniqueCount != null && uniqueCount > 0) {
+                try {
+                    log.info("Dropping unique reservation index {} to preserve status history.", UNIQUE_INDEX_NAME);
+                    jdbcTemplate.execute("alter table reservations drop index " + UNIQUE_INDEX_NAME);
+                } catch (DataAccessException ex) {
+                    Throwable rootCause = ex.getMostSpecificCause();
+                    String causeMessage = rootCause != null ? rootCause.getMessage() : ex.getMessage();
+                    log.warn(
+                            "Could not drop reservation unique index {} automatically ({}). "
+                                    + "App will continue; run manual DB migration if status-history conflicts persist.",
+                            UNIQUE_INDEX_NAME,
+                            causeMessage);
+                }
             }
-        }
 
-        ensureIndex(
-                NORMAL_INDEX_NAME,
-                "create index " + NORMAL_INDEX_NAME + " on reservations (student_id, book_id, status)");
+            ensureIndex(
+                    NORMAL_INDEX_NAME,
+                    "create index " + NORMAL_INDEX_NAME + " on reservations (student_id, book_id, status)");
+        } catch (DataAccessException ex) {
+            Throwable root = ex.getMostSpecificCause();
+            log.warn(
+                    "Reservation index migration skipped ({}). App will continue on a fresh database.",
+                    root != null ? root.getMessage() : ex.getMessage());
+        }
     }
 
     private void ensureIndex(String indexName, String createSql) {
@@ -73,7 +83,15 @@ public class ReservationSchemaMigrationService {
                 rs -> rs.next() ? rs.getInt(1) : 0);
 
         if (count == null || count == 0) {
-            jdbcTemplate.execute(Objects.requireNonNull(createSql));
+            try {
+                jdbcTemplate.execute(Objects.requireNonNull(createSql));
+            } catch (DataAccessException ex) {
+                Throwable root = ex.getMostSpecificCause();
+                log.warn(
+                        "Could not create reservation index {} ({}). App will continue.",
+                        indexName,
+                        root != null ? root.getMessage() : ex.getMessage());
+            }
         }
     }
 }
