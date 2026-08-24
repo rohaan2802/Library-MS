@@ -9,6 +9,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.Instant;
 
@@ -33,7 +34,8 @@ public class RegistrationRequest {
     @Column(nullable = false, length = 20)
     private RequestStatus status = RequestStatus.pending;
 
-    @Column(name = "submitted_at", nullable = false, insertable = false, updatable = false)
+    @Column(name = "submitted_at", nullable = false,
+            columnDefinition = "datetime(6) not null default current_timestamp(6)")
     private Instant submittedAt;
 
     @Column(name = "reviewed_at")
@@ -68,6 +70,17 @@ public class RegistrationRequest {
 
     public Instant getSubmittedAt() {
         return submittedAt;
+    }
+
+    public void setSubmittedAt(Instant submittedAt) {
+        this.submittedAt = submittedAt;
+    }
+
+    @PrePersist
+    void assignSubmittedAt() {
+        if (submittedAt == null) {
+            submittedAt = Instant.now();
+        }
     }
 
     public Instant getReviewedAt() {

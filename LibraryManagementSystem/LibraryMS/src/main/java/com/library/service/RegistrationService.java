@@ -3,6 +3,8 @@ package com.library.service;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,7 @@ import com.library.security.UserIdEncryptionService;
 @Service
 public class RegistrationService {
 
+    private static final Logger log = LoggerFactory.getLogger(RegistrationService.class);
     /** Unambiguous characters for 6-char ids (no I, O, 0, 1). */
     private static final String PLAIN_ID_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -160,9 +163,14 @@ public class RegistrationService {
                 validateAdmin();
 
                 // Advisory DB lock so only one request can run the "first admin" check+save at a time.
-                Integer lockAcquired =
-                        jdbcTemplate.queryForObject(
-                                "SELECT GET_LOCK(?, 10)", Integer.class, ADMIN_SINGLETON_LOCK);
+                Integer lockAcquired = null;
+                try {
+                    lockAcquired =
+                            jdbcTemplate.queryForObject(
+                                    "SELECT GET_LOCK(?, 10)", Integer.class, ADMIN_SINGLETON_LOCK);
+                } catch (RuntimeException lockEx) {
+                    log.warn("GET_LOCK unavailable; continuing without advisory lock: {}", lockEx.getMessage());
+                }
                 adminLockHeld = lockAcquired != null && lockAcquired == 1;
                 if (!adminLockHeld) {
                     throw new BusinessRuleException(
@@ -217,6 +225,7 @@ public class RegistrationService {
             reg.setStatus(
                     creatingFirstAdmin ? RequestStatus.approved : RequestStatus.pending);
             reg.setReviewedAt(creatingFirstAdmin ? java.time.Instant.now() : null);
+            reg.setSubmittedAt(java.time.Instant.now());
             registrationRequestRepository.save(reg);
             return plainUserId;
         } catch (BusinessRuleException e) {
