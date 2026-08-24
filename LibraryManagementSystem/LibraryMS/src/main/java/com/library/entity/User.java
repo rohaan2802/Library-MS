@@ -50,10 +50,12 @@ public class User {
     @Column(name = "profile_picture_focal_y")
     private Double profilePictureFocalY;
 
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false,
+            columnDefinition = "datetime(6) not null default current_timestamp(6)")
     private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Column(name = "updated_at", nullable = false, insertable = false, updatable = false,
+            columnDefinition = "datetime(6) not null default current_timestamp(6) on update current_timestamp(6)")
     private Instant updatedAt;
 
     @Column(name = "last_login_at")

@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: libraryms
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    autoDeploy: true
+    dockerfilePath: ./LibraryManagementSystem/LibraryMS/Dockerfile
+    dockerContext: ./LibraryManagementSystem/LibraryMS
+    healthCheckPath: /login
+    envVars:
+      - key: APP_BROWSER_OPEN_ON_START
+        value: "false"
+      - key: APP_DEMO_SEED
+        value: "true"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: THYMELEAF_CACHE
+        value: "true"
+      - key: HIKARI_MAX_POOL
+        value: "3"
+      - key: TOMCAT_MAX_THREADS
+        value: "30"
+      - key: APP_UPLOAD_DIR
+        value: "/app/uploads/profile-pictures"
+      - key: APP_BACKUP_DIR
+        value: "/app/backup"
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
