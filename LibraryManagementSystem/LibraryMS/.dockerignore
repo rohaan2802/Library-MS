@@ -1,0 +1,11 @@
+target
+.git
+.idea
+.vscode
+.settings
+*.md
+docs
+**/*.docx
+**/*.png
+**/*.jpg
+**/*.svg
