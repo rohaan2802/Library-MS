@@ -21,10 +21,13 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class BookService {
 
+    private static final Logger log = LoggerFactory.getLogger(BookService.class);
     private final BookRepository bookRepository;
     private final BookCopyRepository bookCopyRepository;
     private final BorrowRequestRepository borrowRequestRepository;
@@ -56,8 +59,12 @@ public class BookService {
     @PostConstruct
     @Transactional
     public void backfillDefaultFinePerDay() {
-        bookRepository.backfillMissingFinePerDay(DEFAULT_FINE_PER_DAY_PKR);
-        bookRepository.backfillMissingMaxBorrowDays(DEFAULT_MAX_BORROW_DAYS);
+        try {
+            bookRepository.backfillMissingFinePerDay(DEFAULT_FINE_PER_DAY_PKR);
+            bookRepository.backfillMissingMaxBorrowDays(DEFAULT_MAX_BORROW_DAYS);
+        } catch (RuntimeException ex) {
+            log.warn("Book default backfill skipped on startup: {}", ex.getMessage());
+        }
     }
 
     @Transactional(readOnly = true)
