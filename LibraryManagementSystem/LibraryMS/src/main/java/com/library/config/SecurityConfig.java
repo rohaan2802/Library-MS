@@ -42,7 +42,9 @@ public class SecurityConfig {
                                                 "/register/complete",
                                                 "/register/complete/**",
                                                 "/error",
-                                                "/access-denied")
+                                                "/access-denied",
+                                                "/actuator/health",
+                                                "/actuator/health/**")
                                         .permitAll()
                                         .requestMatchers("/uploads/profiles/**")
                                         .authenticated()
