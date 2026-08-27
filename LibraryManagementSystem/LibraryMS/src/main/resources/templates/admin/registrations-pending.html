@@ -42,7 +42,7 @@
                         </time>
                     </td>
                     <td th:text="${req.user.fullName}">Name</td>
-                    <td th:text="${req.user.email}">email</td>
+                    <td><!--email_off--><span th:text="${req.user.email}">email</span><!--/email_off--></td>
                     <td><span class="role-pill" th:text="${req.user.userRole}">STUDENT</span></td>
                     <td class="actions-cell">
                         <form class="inline-action" th:action="@{/admin/registrations/{id}/approve(id=${req.requestId})}" method="post">

@@ -10,6 +10,9 @@ RUN groupadd --system app && useradd --system --gid app --home-dir /app --shell 
     && mkdir -p /app/uploads/profile-pictures /app/backup \
     && chown -R app:app /app
 COPY --from=build /app/target/*.jar /app/app.jar
+# Seed existing profile photos from the local lab (DB paths like /uploads/profiles/3.jpg)
+COPY seed-uploads/ /app/uploads/profile-pictures/
+RUN chown -R app:app /app/uploads
 ENV APP_BROWSER_OPEN_ON_START=false \
     JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=55.0 -XX:+UseSerialGC -Xss256k -XX:MaxMetaspaceSize=96m -XX:+ExitOnOutOfMemoryError"
 USER app

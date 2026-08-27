@@ -36,7 +36,7 @@
                 <h1>Welcome to the admin workspace</h1>
                 <div class="admin-identity-row">
                     <p class="lede"><strong sec:authentication="principal.fullName">Admin</strong>
-                        <span class="lede-email">(<span sec:authentication="name">email</span>)</span></p>
+                        <span class="lede-email">(<!--email_off--><span sec:authentication="name">email</span><!--/email_off-->)</span></p>
                 </div>
                 <ul class="checklist">
                     <li>Approve registration requests and manage account lifecycle</li>
