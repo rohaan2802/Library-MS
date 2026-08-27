@@ -35,10 +35,12 @@ public class AdminDashboardController {
     @PostMapping("/maintenance/backup")
     public String runBackupAndCleanup(RedirectAttributes redirectAttributes) {
         try {
-            adminMaintenanceService.backupAndCleanup();
+            AdminMaintenanceService.MaintenanceResult result = adminMaintenanceService.backupAndCleanup();
             redirectAttributes.addFlashAttribute(
                     "flashSuccess",
-                    "Maintenance Complete. Backup Done !. Removed temporary files and reclaimed Storage");
+                    result.sqlBackupCreated()
+                            ? "Maintenance complete. SQL backup saved and temporary files cleaned."
+                            : result.message());
         } catch (BusinessRuleException ex) {
             redirectAttributes.addFlashAttribute("flashError", UserFacingMessages.orGeneric(ex.getMessage()));
         }

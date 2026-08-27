@@ -11,6 +11,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,7 @@ public class AdminMaintenanceService {
     private final String backupDirectory;
     private final String backupFilename;
     private final String cleanupPathsRaw;
+    private final boolean cliToolsEnabled;
 
     public AdminMaintenanceService(
             @Value("${spring.datasource.url}") String datasourceUrl,
@@ -32,25 +35,39 @@ public class AdminMaintenanceService {
             @Value("${app.maintenance.backup.dir:${user.dir}/../DB_BackUP}") String backupDirectory,
             @Value("${app.maintenance.backup.filename:library_db_backup.sql}") String backupFilename,
             @Value("${app.maintenance.cleanup.paths:${app.maintenance.temp.dir:${user.dir}/../tmp/library-management}}")
-                    String cleanupPathsRaw) {
+                    String cleanupPathsRaw,
+            @Value("${app.maintenance.cli-tools-enabled:true}") boolean cliToolsEnabled) {
         this.datasourceUrl = datasourceUrl;
         this.datasourceUsername = datasourceUsername;
         this.datasourcePassword = datasourcePassword;
         this.backupDirectory = backupDirectory;
         this.backupFilename = backupFilename;
         this.cleanupPathsRaw = cleanupPathsRaw;
+        this.cliToolsEnabled = cliToolsEnabled;
     }
 
     @Transactional
     public MaintenanceResult backupAndCleanup() {
-        Path backupPath = runDatabaseBackup();
         CleanupStats stats = cleanupTemporaryFiles();
-
-        // Ask JVM for a memory cleanup cycle after disk cleanup and backup.
         System.gc();
 
+        if (!cliToolsEnabled || !isCliToolAvailable("mysqldump")) {
+            return new MaintenanceResult(
+                    null,
+                    false,
+                    "Cleanup finished. SQL backup/restore is only available on a local PC with MySQL tools"
+                            + " (mysqldump). On this live host the database is managed in Aiven — use Aiven"
+                            + " backups or export from your local app.",
+                    stats.deletedFiles(),
+                    stats.freedBytes(),
+                    Instant.now());
+        }
+
+        Path backupPath = runDatabaseBackup();
         return new MaintenanceResult(
                 backupPath.toString(),
+                true,
+                "Backup and cleanup finished.",
                 stats.deletedFiles(),
                 stats.freedBytes(),
                 Instant.now());
@@ -58,6 +75,13 @@ public class AdminMaintenanceService {
 
     @Transactional
     public RestoreResult restoreFromLatestBackup() {
+        if (!cliToolsEnabled || !isCliToolAvailable("mysql")) {
+            throw new BusinessRuleException(
+                    "Restore is not available on this live host. The cloud image does not include MySQL client"
+                            + " tools. Restore from your local PC (with mysql installed) or restore a backup in"
+                            + " the Aiven console.");
+        }
+
         String dbName = extractDatabaseName(datasourceUrl);
         Path backupFilePath = resolveBackupFilePath();
         if (!Files.exists(backupFilePath)) {
@@ -102,6 +126,28 @@ public class AdminMaintenanceService {
         } catch (IOException ex) {
             throw new BusinessRuleException(
                     "Unable to create database backup. Check backup folder permissions and MySQL tool availability.");
+        }
+    }
+
+    private boolean isCliToolAvailable(String tool) {
+        String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
+        List<String> command =
+                os.contains("win")
+                        ? List.of("cmd", "/c", "where", tool)
+                        : List.of("sh", "-c", "command -v " + tool);
+        try {
+            Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
+            boolean finished = process.waitFor(3, TimeUnit.SECONDS);
+            if (!finished) {
+                process.destroyForcibly();
+                return false;
+            }
+            return process.exitValue() == 0;
+        } catch (IOException | InterruptedException ex) {
+            if (ex instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            return false;
         }
     }
 
@@ -163,7 +209,6 @@ public class AdminMaintenanceService {
     }
 
     private String extractDatabaseName(String jdbcUrl) {
-        // Example: jdbc:mysql://localhost:3306/library_db?useSSL=false
         int slashIndex = jdbcUrl.lastIndexOf('/');
         if (slashIndex < 0 || slashIndex + 1 >= jdbcUrl.length()) {
             throw new BusinessRuleException("Invalid datasource URL. Cannot determine database name for backup.");
@@ -218,7 +263,13 @@ public class AdminMaintenanceService {
 
     private record CleanupStats(long deletedFiles, long freedBytes) {}
 
-    public record MaintenanceResult(String backupPath, long deletedTempFiles, long freedBytes, Instant executedAt) {}
+    public record MaintenanceResult(
+            String backupPath,
+            boolean sqlBackupCreated,
+            String message,
+            long deletedTempFiles,
+            long freedBytes,
+            Instant executedAt) {}
 
     public record RestoreResult(String backupPath, Instant executedAt) {}
 }
