@@ -1,11 +1,15 @@
 (() => {
-    // Free-tier containers (512MB) cannot survive 1s full-page polls; keep demo responsive but light.
-    const DEFAULT_POLL_MS = 8000;
-    const REPORTS_POLL_MS = 8000;
-    const STUDENT_REQUESTS_POLL_MS = 8000;
-    const STUDENT_FINES_POLL_MS = 8000;
-    const STUDENT_RESERVATIONS_POLL_MS = 8000;
-    const LIBRARIAN_RESERVATIONS_POLL_MS = 8000;
+    // Poll interval comes from server (app.live.poll-ms). Cloud profile uses 15s to protect 512MB RAM.
+    const configured = Number(
+        document.querySelector('meta[name="live-poll-ms"]')?.getAttribute("content") || "8000"
+    );
+    const POLL_MS = Number.isFinite(configured) && configured >= 3000 ? configured : 8000;
+    const DEFAULT_POLL_MS = POLL_MS;
+    const REPORTS_POLL_MS = POLL_MS;
+    const STUDENT_REQUESTS_POLL_MS = POLL_MS;
+    const STUDENT_FINES_POLL_MS = POLL_MS;
+    const STUDENT_RESERVATIONS_POLL_MS = POLL_MS;
+    const LIBRARIAN_RESERVATIONS_POLL_MS = POLL_MS;
     const ALERT_MIN_VISIBLE_MS = 5000;
     let inFlight = false;
     const TABLE_WRAP_SELECTOR = ".table-wrap";
