@@ -1,25 +1,29 @@
-# Keep LibraryMS demo awake via GitHub (PC does not need to stay on).
+# Keep LibraryMS demo awake via GitHub Actions (PC does not need to stay on).
 #
-# Every 5 minutes:
-#   1) GET /actuator/health on SnapDeploy — does NOT open signup/register,
-#      so a real user browsing the app is not bounced to another page.
-#   2) SELECT 1 on Aiven MySQL — reduces free-tier power-off from inactivity.
+# Every 5 minutes (cron */5):
+#   1) SELECT 1 on Aiven MySQL — primary keep-alive (stops free-tier power-off)
+#   2) GET /actuator/health on SnapDeploy — wakes/checks the app (never opens signup)
 #
-# Required repo Secrets (Settings → Secrets and variables → Actions):
-#   AIVEN_MYSQL_HOST
-#   AIVEN_MYSQL_PORT
-#   AIVEN_MYSQL_USER
-#   AIVEN_MYSQL_PASSWORD
-#   AIVEN_MYSQL_DATABASE
+# If schedules do not appear under Actions, open:
+#   https://github.com/rohaan2802/Library-MS/actions/workflows/keep-demo-awake.yml
+# and click "Enable workflow" if shown, then "Run workflow" once.
+#
+# Required Secrets (Settings → Secrets and variables → Actions):
+#   AIVEN_MYSQL_HOST, AIVEN_MYSQL_PORT, AIVEN_MYSQL_USER,
+#   AIVEN_MYSQL_PASSWORD, AIVEN_MYSQL_DATABASE
 # Optional:
-#   SNAPDEPLOY_URL  (default: https://libraryms-0899b.containers.snapdeploy.app)
+#   SNAPDEPLOY_URL  (default https://libraryms-0899b.containers.snapdeploy.app)
 
 name: Keep demo awake
 
 on:
   schedule:
+    # Every 5 minutes. GitHub may delay a few minutes under load, but should keep firing.
     - cron: "*/5 * * * *"
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: keep-demo-awake
@@ -30,31 +34,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Ping SnapDeploy health only (never signup/register)
-        env:
-          SNAPDEPLOY_URL: ${{ secrets.SNAPDEPLOY_URL }}
-        run: |
-          set -euo pipefail
-          URL="${SNAPDEPLOY_URL:-https://libraryms-0899b.containers.snapdeploy.app}"
-          URL="${URL%/}"
-          # Only health — no /register, /login form submit, or browser navigation.
-          # This is a server-side curl; it cannot change another visitor's open tab.
-          code="$(curl -sS -o /tmp/sd_body -w "%{http_code}" --max-time 90 \
-            "$URL/actuator/health" || true)"
-          echo "GET $URL/actuator/health -> HTTP $code"
-          head -c 200 /tmp/sd_body || true
-          echo
-          case "$code" in
-            200) echo "SnapDeploy awake." ;;
-            *) echo "SnapDeploy not healthy (HTTP $code). Often means deploy quota, crash, or Aiven off." ;;
-          esac
-
       - name: Install MySQL client
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq mysql-client
 
-      - name: Ping Aiven MySQL (SELECT 1)
+      - name: Ping Aiven MySQL (SELECT 1) every run
         env:
           AIVEN_MYSQL_HOST: ${{ secrets.AIVEN_MYSQL_HOST }}
           AIVEN_MYSQL_PORT: ${{ secrets.AIVEN_MYSQL_PORT }}
@@ -63,6 +48,7 @@ jobs:
           AIVEN_MYSQL_DATABASE: ${{ secrets.AIVEN_MYSQL_DATABASE }}
         run: |
           set -euo pipefail
+          echo "Keep-alive tick at $(date -u +%Y-%m-%dT%H:%M:%SZ) (event=${GITHUB_EVENT_NAME})"
           for v in AIVEN_MYSQL_HOST AIVEN_MYSQL_PORT AIVEN_MYSQL_USER AIVEN_MYSQL_PASSWORD AIVEN_MYSQL_DATABASE; do
             if [ -z "${!v}" ]; then
               echo "Missing secret: $v"
@@ -79,3 +65,22 @@ jobs:
             "$AIVEN_MYSQL_DATABASE" \
             -e "SELECT 1 AS keep_awake, NOW() AS checked_at;"
           echo "Aiven MySQL ping OK."
+
+      - name: Ping SnapDeploy health only (never signup/register)
+        env:
+          SNAPDEPLOY_URL: ${{ secrets.SNAPDEPLOY_URL }}
+        run: |
+          set -uo pipefail
+          URL="${SNAPDEPLOY_URL:-https://libraryms-0899b.containers.snapdeploy.app}"
+          URL="${URL%/}"
+          code="$(curl -sS -o /tmp/sd_body -w "%{http_code}" --max-time 90 \
+            "$URL/actuator/health" || true)"
+          echo "GET $URL/actuator/health -> HTTP $code"
+          head -c 200 /tmp/sd_body || true
+          echo
+          case "$code" in
+            200) echo "SnapDeploy awake." ;;
+            *) echo "SnapDeploy not healthy (HTTP $code). Aiven ping already done; app may need redeploy." ;;
+          esac
+          # Do not fail the job on SnapDeploy 502 — Aiven keep-alive is the critical part.
+          exit 0

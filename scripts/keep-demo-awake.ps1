@@ -1,10 +1,11 @@
 # Keep LibraryMS live demo awake (Aiven MySQL + SnapDeploy HTTP).
-# Run every 10 minutes via Windows Task Scheduler — no new repo needed.
+# Preferred interval: every 5 minutes (Windows Task Scheduler) — backup if GitHub cron delays.
 #
-# Example (PowerShell as Admin once):
-#   $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File `"C:\Users\CodeTech\Desktop\LibraryMS\scripts\keep-demo-awake.ps1`""
-#   $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 10) -RepetitionDuration ([TimeSpan]::MaxValue)
-#   Register-ScheduledTask -TaskName "LibraryMS-KeepAwake" -Action $action -Trigger $trigger -Description "Ping Aiven + SnapDeploy"
+# Register once (PowerShell):
+#   $script = "C:\Users\CodeTech\Desktop\LibraryMS\scripts\keep-demo-awake.ps1"
+#   $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$script`""
+#   $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 5) -RepetitionDuration ([TimeSpan]::MaxValue)
+#   Register-ScheduledTask -TaskName "LibraryMS-KeepAwake" -Action $action -Trigger $trigger -Description "Ping Aiven + SnapDeploy every 5 minutes"
 
 $ErrorActionPreference = "Continue"
 
