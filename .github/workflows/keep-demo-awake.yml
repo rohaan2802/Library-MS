@@ -1,0 +1,81 @@
+# Keep LibraryMS demo awake via GitHub (PC does not need to stay on).
+#
+# Every 5 minutes:
+#   1) GET /actuator/health on SnapDeploy — does NOT open signup/register,
+#      so a real user browsing the app is not bounced to another page.
+#   2) SELECT 1 on Aiven MySQL — reduces free-tier power-off from inactivity.
+#
+# Required repo Secrets (Settings → Secrets and variables → Actions):
+#   AIVEN_MYSQL_HOST
+#   AIVEN_MYSQL_PORT
+#   AIVEN_MYSQL_USER
+#   AIVEN_MYSQL_PASSWORD
+#   AIVEN_MYSQL_DATABASE
+# Optional:
+#   SNAPDEPLOY_URL  (default: https://libraryms-0899b.containers.snapdeploy.app)
+
+name: Keep demo awake
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: keep-demo-awake
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping SnapDeploy health only (never signup/register)
+        env:
+          SNAPDEPLOY_URL: ${{ secrets.SNAPDEPLOY_URL }}
+        run: |
+          set -euo pipefail
+          URL="${SNAPDEPLOY_URL:-https://libraryms-0899b.containers.snapdeploy.app}"
+          URL="${URL%/}"
+          # Only health — no /register, /login form submit, or browser navigation.
+          # This is a server-side curl; it cannot change another visitor's open tab.
+          code="$(curl -sS -o /tmp/sd_body -w "%{http_code}" --max-time 90 \
+            "$URL/actuator/health" || true)"
+          echo "GET $URL/actuator/health -> HTTP $code"
+          head -c 200 /tmp/sd_body || true
+          echo
+          case "$code" in
+            200) echo "SnapDeploy awake." ;;
+            *) echo "SnapDeploy not healthy (HTTP $code). Often means deploy quota, crash, or Aiven off." ;;
+          esac
+
+      - name: Install MySQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mysql-client
+
+      - name: Ping Aiven MySQL (SELECT 1)
+        env:
+          AIVEN_MYSQL_HOST: ${{ secrets.AIVEN_MYSQL_HOST }}
+          AIVEN_MYSQL_PORT: ${{ secrets.AIVEN_MYSQL_PORT }}
+          AIVEN_MYSQL_USER: ${{ secrets.AIVEN_MYSQL_USER }}
+          AIVEN_MYSQL_PASSWORD: ${{ secrets.AIVEN_MYSQL_PASSWORD }}
+          AIVEN_MYSQL_DATABASE: ${{ secrets.AIVEN_MYSQL_DATABASE }}
+        run: |
+          set -euo pipefail
+          for v in AIVEN_MYSQL_HOST AIVEN_MYSQL_PORT AIVEN_MYSQL_USER AIVEN_MYSQL_PASSWORD AIVEN_MYSQL_DATABASE; do
+            if [ -z "${!v}" ]; then
+              echo "Missing secret: $v"
+              exit 1
+            fi
+          done
+          export MYSQL_PWD="$AIVEN_MYSQL_PASSWORD"
+          mysql \
+            -h "$AIVEN_MYSQL_HOST" \
+            -P "$AIVEN_MYSQL_PORT" \
+            -u "$AIVEN_MYSQL_USER" \
+            --ssl-mode=REQUIRED \
+            --connect-timeout=20 \
+            "$AIVEN_MYSQL_DATABASE" \
+            -e "SELECT 1 AS keep_awake, NOW() AS checked_at;"
+          echo "Aiven MySQL ping OK."
