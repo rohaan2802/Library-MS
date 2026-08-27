@@ -1,10 +1,11 @@
 (() => {
-    const DEFAULT_POLL_MS = 1000;
-    const REPORTS_POLL_MS = 1000;
-    const STUDENT_REQUESTS_POLL_MS = 1000;
-    const STUDENT_FINES_POLL_MS = 1000;
-    const STUDENT_RESERVATIONS_POLL_MS = 1000;
-    const LIBRARIAN_RESERVATIONS_POLL_MS = 1000;
+    // Free-tier containers (512MB) cannot survive 1s full-page polls; keep demo responsive but light.
+    const DEFAULT_POLL_MS = 8000;
+    const REPORTS_POLL_MS = 8000;
+    const STUDENT_REQUESTS_POLL_MS = 8000;
+    const STUDENT_FINES_POLL_MS = 8000;
+    const STUDENT_RESERVATIONS_POLL_MS = 8000;
+    const LIBRARIAN_RESERVATIONS_POLL_MS = 8000;
     const ALERT_MIN_VISIBLE_MS = 5000;
     let inFlight = false;
     const TABLE_WRAP_SELECTOR = ".table-wrap";

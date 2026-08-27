@@ -40,7 +40,7 @@
                 <tr th:each="row : ${userAccountRows}" th:with="u=${row.user}">
                     <td class="cell-mono" th:text="${row.plainUserId}">uuid</td>
                     <td th:text="${u.fullName}">Name</td>
-                    <td th:text="${u.email}">email</td>
+                    <td><!--email_off--><span th:text="${u.email}">email</span><!--/email_off--></td>
                     <td><span class="role-pill" th:text="${u.userRole}">STUDENT</span></td>
                     <td th:text="${u.accountStatus}">active</td>
                     <td th:text="${row.registrationRequestStatus != null ? row.registrationRequestStatus : '—'}">approved</td>
