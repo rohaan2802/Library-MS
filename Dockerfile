@@ -25,4 +25,4 @@ ENV APP_BROWSER_OPEN_ON_START=false \
 USER app
 EXPOSE 8080
 # JVM flags passed directly on command line to override any cached JAVA_TOOL_OPTIONS env var
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=70.0", "-XX:+UseSerialGC", "-Xss256k", "-XX:MaxMetaspaceSize=256m", "-XX:CompressedClassSpaceSize=96m", "-Djava.awt.headless=true", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=50.0", "-XX:+UseSerialGC", "-Xss256k", "-XX:MaxMetaspaceSize=160m", "-XX:CompressedClassSpaceSize=64m", "-Djava.awt.headless=true", "-jar", "/app/app.jar"]
