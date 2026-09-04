@@ -6,9 +6,13 @@ RUN mvn -q -DskipTests package
 
 FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
-# Cache-buster: changing this ARG forces a full rebuild on platforms with aggressive Docker layer caching (SnapDeploy)
-ARG CACHEBUST=256m-metaspace-fix
-RUN groupadd --system app && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app \
+# Cache-buster: this RUN consumes the ARG, so changing CACHEBUST invalidates ALL
+# subsequent layers (ENV, COPY, ENTRYPOINT). Required because SnapDeploy "retry"
+# reuses Docker build cache and won't rebuild otherwise.
+ARG CACHEBUST=metaspace-fix-v2
+RUN echo "cachebust:${CACHEBUST}" > /tmp/cachebust \
+    && rm -f /tmp/cachebust \
+    && groupadd --system app && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app \
     && mkdir -p /app/uploads/profile-pictures /app/backup \
     && chown -R app:app /app
 COPY --from=build /app/target/*.jar /app/app.jar
