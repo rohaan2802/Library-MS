@@ -20,7 +20,8 @@ COPY --from=build /app/target/*.jar /app/app.jar
 COPY LibraryManagementSystem/LibraryMS/seed-uploads/ /app/uploads/profile-pictures/
 RUN chown -R app:app /app/uploads
 ENV APP_BROWSER_OPEN_ON_START=false \
-    SPRING_PROFILES_ACTIVE=cloud
+    SPRING_PROFILES_ACTIVE=cloud \
+    SERVER_PORT=8080
 USER app
 EXPOSE 8080
 # JVM flags passed directly on command line to override any cached JAVA_TOOL_OPTIONS env var
