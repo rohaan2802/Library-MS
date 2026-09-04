@@ -15,7 +15,7 @@ COPY seed-uploads/ /app/uploads/profile-pictures/
 RUN chown -R app:app /app/uploads
 ENV APP_BROWSER_OPEN_ON_START=false \
     SPRING_PROFILES_ACTIVE=cloud \
-    JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=50.0 -XX:+UseSerialGC -Xss256k -XX:MaxMetaspaceSize=80m -XX:CompressedClassSpaceSize=32m -XX:+ExitOnOutOfMemoryError -Djava.awt.headless=true"
+    JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=50.0 -XX:+UseSerialGC -Xss256k -XX:MaxMetaspaceSize=256m -XX:CompressedClassSpaceSize=96m -XX:+ExitOnOutOfMemoryError -Djava.awt.headless=true"
 USER app
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
