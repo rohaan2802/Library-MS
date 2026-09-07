@@ -21,13 +21,7 @@ LibraryMS is deployed as a production-style Spring Boot application with an Aive
 
 ## Demo Screenshots
 
-![Admin dashboard](docs/screenshots/admin-dashboard.png)
-
-![Librarian dashboard](docs/screenshots/librarian-dashboard.png)
-
-![Student dashboard](docs/screenshots/student-dashboard.png)
-
-These PNG previews are included in the repository so GitHub renders them directly.
+Original Admin, Librarian, and Student dashboard screenshots will be added here from the authenticated live application.
 
 ## Production deployment variables
 
