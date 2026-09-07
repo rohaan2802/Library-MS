@@ -21,7 +21,13 @@ LibraryMS is deployed as a production-style Spring Boot application with an Aive
 
 ## Demo Screenshots
 
-Screenshots of the sign-in screen and role-based portals should be placed in docs/screenshots/. The live demo above is available for desktop, tablet, and mobile responsive testing.
+Screenshots of the live application are shown below. Open the live demo above to explore the authenticated Admin, Librarian, and Student portals.
+
+![LibraryMS live sign-in screen](https://s.wordpress.com/mshots/v1/https%3A%2F%2Flibraryms-0899b.containers.snapdeploy.app%2Flogin?w=1400)
+
+![LibraryMS live responsive preview](https://s.wordpress.com/mshots/v1/https%3A%2F%2Flibraryms-0899b.containers.snapdeploy.app%2F?w=1400)
+
+The live demo is available for desktop, tablet, and mobile responsive testing.
 
 ## Production deployment variables
 
