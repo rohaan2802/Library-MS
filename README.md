@@ -15,19 +15,19 @@ This project is built with:
 
 ## Live Demo
 
-### **https://libraryms-0899b.containers.snapdeploy.app**
+Open the deployed application here: [LibraryMS Live Demo](https://libraryms-0899b.containers.snapdeploy.app)
 
 LibraryMS is deployed as a production-style Spring Boot application with an Aiven MySQL database. Explore the responsive Admin, Librarian, and Student portals.
 
 ## Demo Screenshots
 
-Screenshots of the live application are shown below. Open the live demo above to explore the authenticated Admin, Librarian, and Student portals.
+![Admin dashboard](docs/screenshots/admin-dashboard.png)
 
-![LibraryMS live sign-in screen](https://s.wordpress.com/mshots/v1/https%3A%2F%2Flibraryms-0899b.containers.snapdeploy.app%2Flogin?w=1400)
+![Librarian dashboard](docs/screenshots/librarian-dashboard.png)
 
-![LibraryMS live responsive preview](https://s.wordpress.com/mshots/v1/https%3A%2F%2Flibraryms-0899b.containers.snapdeploy.app%2F?w=1400)
+![Student dashboard](docs/screenshots/student-dashboard.png)
 
-The live demo is available for desktop, tablet, and mobile responsive testing.
+These PNG previews are included in the repository so GitHub renders them directly.
 
 ## Production deployment variables
 
