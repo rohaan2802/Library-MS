@@ -16,13 +16,14 @@ RUN echo "cachebust:${CACHEBUST}" > /tmp/cachebust \
     && mkdir -p /app/uploads/profile-pictures /app/backup \
     && chown -R app:app /app
 COPY --from=build /app/target/*.jar /app/app.jar
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 # Seed existing profile photos from the local lab (DB paths like /uploads/profiles/3.jpg)
 COPY LibraryManagementSystem/LibraryMS/seed-uploads/ /app/uploads/profile-pictures/
-RUN chown -R app:app /app/uploads
+RUN chmod +x /app/docker-entrypoint.sh && chown -R app:app /app
 ENV APP_BROWSER_OPEN_ON_START=false \
     SPRING_PROFILES_ACTIVE=cloud \
     SERVER_PORT=8080
 USER app
 EXPOSE 8080
 # JVM flags passed directly on command line to override any cached JAVA_TOOL_OPTIONS env var
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=50.0", "-XX:+UseSerialGC", "-Xss256k", "-XX:MaxMetaspaceSize=160m", "-XX:CompressedClassSpaceSize=64m", "-Djava.awt.headless=true", "-jar", "/app/app.jar"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
