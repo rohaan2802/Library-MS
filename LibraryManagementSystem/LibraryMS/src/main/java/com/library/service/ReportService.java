@@ -57,22 +57,14 @@ public class ReportService {
     public FineReport getFineReport() {
         long unpaidIssued = fineRepository.countByStatus(FineStatus.UNPAID);
         long paid = fineRepository.countByStatus(FineStatus.PAID);
-        long waived = fineRepository.countByStatus(FineStatus.WAIVED);
-        // Unpaid (issued): amount still owed after any waived/reduction applied on unpaid fines.
-        BigDecimal unpaidIssuedAmount = fineRepository.sumNetAmountByStatus(FineStatus.UNPAID);
-        BigDecimal unpaidWaivedAdjustment = fineRepository.sumWaivedAmountByStatus(FineStatus.UNPAID);
-        BigDecimal paidGrossAmount = fineRepository.sumAmountByStatus(FineStatus.PAID);
-        BigDecimal paidNetAmount =
-                nonNegative(paidGrossAmount.subtract(fineRepository.sumWaivedAmountByStatus(FineStatus.PAID)));
-        BigDecimal paidWaivedAdjustment = fineRepository.sumWaivedAmountByStatus(FineStatus.PAID);
-        BigDecimal waivedNetAmount = fineRepository.sumNetAmountByStatus(FineStatus.WAIVED);
-        BigDecimal waivedAdjustmentAmount =
-                fineRepository.findAllByStatusWithDetails(FineStatus.WAIVED).stream()
-                        .map(this::effectiveWaivedAmount)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal paidAmount = paidNetAmount;
-        // All reductions/waivers: unpaid partials + partials on paid + fully waived lines.
-        BigDecimal waivedAmount = unpaidWaivedAdjustment.add(paidWaivedAdjustment).add(waivedAdjustmentAmount);
+        List<Fine> allFines = fineRepository.findAll();
+        List<Fine> fullyWaivedFines = allFines.stream().filter(this::isFullyWaived).toList();
+        List<Fine> partiallyWaivedFines = allFines.stream().filter(this::isPartiallyWaived).toList();
+        long fullyWaivedCount = fullyWaivedFines.size();
+        BigDecimal fullyWaivedAmount = fullyWaivedFines.stream().map(this::effectiveWaivedAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        long partiallyWaivedCount = partiallyWaivedFines.size();
+        BigDecimal partiallyWaivedAmount = partiallyWaivedFines.stream().map(this::effectiveWaivedAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal waivedAmount = fullyWaivedAmount.add(partiallyWaivedAmount);
 
         List<BorrowRecord> liveOverdue = borrowRecordRepository.findAllOverdueWithDetails(LocalDate.now());
         long unpaidNotIssued = liveOverdue.size();
@@ -91,15 +83,16 @@ public class ReportService {
                 unpaidIssued,
                 unpaidNotIssued,
                 paid,
-                waived,
+                fullyWaivedCount,
+                partiallyWaivedCount,
                 unpaidIssuedAmount,
                 unpaidNotIssuedAmount,
                 paidAmount,
+                fullyWaivedAmount,
+                partiallyWaivedAmount,
                 waivedAmount,
                 paidNetAmount,
-                paidWaivedAdjustment,
-                waivedNetAmount,
-                waivedAdjustmentAmount);
+                paidWaivedAdjustment);
     }
 
     // -----------------------------------------------------------------------
@@ -124,15 +117,16 @@ public class ReportService {
             long unpaidIssuedCount,
             long unpaidNotIssuedCount,
             long paidCount,
-            long waivedCount,
+            long fullyWaivedCount,
+            long partiallyWaivedCount,
             BigDecimal unpaidIssuedAmount,
             BigDecimal unpaidNotIssuedAmount,
             BigDecimal paidAmount,
+            BigDecimal fullyWaivedAmount,
+            BigDecimal partiallyWaivedAmount,
             BigDecimal waivedAmount,
             BigDecimal paidNetAmount,
-            BigDecimal paidWaivedAdjustment,
-            BigDecimal waivedNetAmount,
-            BigDecimal waivedAdjustmentAmount) {
+            BigDecimal paidWaivedAdjustment) {
 
         public long unpaidTotalCount() {
             return unpaidIssuedCount + unpaidNotIssuedCount;
@@ -143,7 +137,7 @@ public class ReportService {
         }
 
         public long totalCount() {
-            return unpaidIssuedCount + unpaidNotIssuedCount + paidCount + waivedCount;
+            return unpaidIssuedCount + unpaidNotIssuedCount + paidCount + fullyWaivedCount;
         }
 
         public BigDecimal totalAmount() {
@@ -155,6 +149,18 @@ public class ReportService {
             long totalUsers, long activeLoans, long completedLoans, long overdueLoans) {
 
         public long totalLoans() { return activeLoans + completedLoans + overdueLoans; }
+    }
+
+    private boolean isFullyWaived(Fine fine) {
+        if (fine == null || fine.getAmount() == null) return false;
+        BigDecimal waived = effectiveWaivedAmount(fine);
+        return waived.compareTo(BigDecimal.ZERO) > 0 && waived.compareTo(fine.getAmount()) >= 0;
+    }
+
+    private boolean isPartiallyWaived(Fine fine) {
+        if (fine == null || fine.getAmount() == null) return false;
+        BigDecimal waived = effectiveWaivedAmount(fine);
+        return waived.compareTo(BigDecimal.ZERO) > 0 && waived.compareTo(fine.getAmount()) < 0;
     }
 
     private static BigDecimal nonNegative(BigDecimal value) {

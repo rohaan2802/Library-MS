@@ -1644,3 +1644,19 @@ canvas {
         font-size: 0.95rem;
     }
 }
+
+/* Final responsive guardrails: preserve readable controls on narrow screens. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { max-width: 100%; overflow-x: hidden; }
+img, svg, video, canvas { max-width: 100%; height: auto; }
+button, .btn, input, select, textarea { max-width: 100%; }
+.table-wrap, .data-table-wrap { width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+@media (max-width: 560px) {
+  .container { width: min(100% - 1.25rem, 72rem); }
+  .dashboard-main, .card-elevated { padding-inline: .9rem; }
+  .dashboard-actions, .inline-action, .form-actions { flex-wrap: wrap; }
+  .dashboard-actions > *, .form-actions > *, .inline-action > .btn { flex: 1 1 100%; min-width: 0; }
+  .report-cards { grid-template-columns: 1fr; }
+  .card, .card-elevated, .panel { min-width: 0; }
+  h1 { font-size: clamp(1.55rem, 7vw, 2.25rem); overflow-wrap: anywhere; }
+}
