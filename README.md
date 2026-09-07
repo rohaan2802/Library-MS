@@ -23,6 +23,28 @@ LibraryMS is deployed as a production-style Spring Boot application with an Aive
 
 Screenshots of the sign-in screen and role-based portals should be placed in docs/screenshots/. The live demo above is available for desktop, tablet, and mobile responsive testing.
 
+## Production deployment variables
+
+For SnapDeploy with the Aiven MySQL database, configure these environment variables:
+
+```text
+SPRING_DATASOURCE_URL=jdbc:mysql://<aiven-host>:<aiven-port>/<database>?sslMode=REQUIRED&serverTimezone=UTC&characterEncoding=utf8
+SPRING_DATASOURCE_USERNAME=avnadmin
+SPRING_DATASOURCE_PASSWORD=<set-in-SnapDeploy-secret>
+SPRING_PROFILES_ACTIVE=cloud
+SERVER_PORT=8080
+APP_BROWSER_OPEN_ON_START=false
+APP_DEMO_SEED=true
+COOKIE_SECURE=true
+THYMELEAF_CACHE=true
+HIKARI_MAX_POOL=2
+TOMCAT_MAX_THREADS=20
+APP_UPLOAD_DIR=/app/uploads/profile-pictures
+APP_BACKUP_DIR=/app/backup
+CACHEBUST=<change-for-a-fresh-build>
+```
+
+Never commit database passwords or encryption secrets to the repository. The live host uses Aiven for database backups; SQL backup/restore commands require MySQL client tools on a local PC.
 ## Quick Overview
 
 ### Project Description
