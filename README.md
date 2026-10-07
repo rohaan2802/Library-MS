@@ -25,7 +25,7 @@ Original Admin, Librarian, and Student dashboard screenshots will be added here 
 
 ## Production deployment variables
 
-For SnapDeploy with the Aiven MySQL database, configure the below environment variables:
+For SnapDeploy with the Aiven MySQL database, configure the given below environment variables:
 
 ```text
 SPRING_DATASOURCE_URL=jdbc:mysql://<aiven-host>:<aiven-port>/<database>?sslMode=REQUIRED&serverTimezone=UTC&characterEncoding=utf8
